@@ -111,9 +111,9 @@ try:
        - Luôn kết thúc bằng một câu khẳng định tình yêu, dỗ dành ngọt ngào, thả thính sến súa hoặc câu ôm ấp ấm áp dành cho vợ!
     """
 
-    # Sử dụng model chuẩn tương thích với phướng thức gọi hiện tại
+    # Sử dụng model gemini-2.5-flash chuẩn mới nhất để không bị lỗi 404
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
+        model_name="gemini-2.5-flash",
         system_instruction=system_instruction
     )
 
@@ -143,3 +143,4 @@ try:
 
 except Exception as e:
     st.error(f"Chưa cấu hình chìa khóa API trong Secrets kìa vợ ơi hoặc có lỗi nhỏ: {e} 💕")
+    
