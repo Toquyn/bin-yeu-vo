@@ -78,7 +78,7 @@ st.markdown("""
 st.title("🖤 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
 st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho bé con Tô Nguyễn Thanh Quyên 💕")
 
-# 3. LẤY CHÌA KHÓA API AN TOÀN TỪ SECRETS
+# 3. LẤY CHÌA KHÓA API AN TOÀN TỪ SECRETS VÀ KHỞI TẠO MODEL
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
@@ -110,36 +110,36 @@ try:
        - ⚠️ QUY TẮC TỐI CAO TUYỆT ĐỐI: KHÔNG BAO GIỜ ĐẶT CÂU HỎI Ở CUỐI CÂU TRẢ LỜI! 
        - Luôn kết thúc bằng một câu khẳng định tình yêu, dỗ dành ngọt ngào, thả thính sến súa hoặc câu ôm ấp ấm áp dành cho vợ!
     """
-    
+
+    # Sử dụng model chuẩn tương thích với phướng thức gọi hiện tại
     model = genai.GenerativeModel(
         model_name="gemini-1.5-flash",
         system_instruction=system_instruction
     )
-    
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        
+
     gemini_history = []
     for message in st.session_state.messages:
         gemini_role = "user" if message["role"] == "user" else "model"
         gemini_history.append({"role": gemini_role, "parts": [message["content"]]})
-        
+
     chat = model.start_chat(history=gemini_history)
-    
+
     for message in st.session_state.messages:
         role_icon = "👧" if message["role"] == "user" else "🐰"
         with st.chat_message(message["role"], avatar=role_icon):
             st.markdown(message["content"])
-            
+
     if prompt := st.chat_input("Nhắn lời yêu thương gửi tới Thỏ nè vợ ơi..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👧"):
             st.markdown(prompt)
-            
         with st.chat_message("assistant", avatar="🐰"):
             response = chat.send_message(prompt)
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
-            
+
 except Exception as e:
     st.error(f"Chưa cấu hình chìa khóa API trong Secrets kìa vợ ơi hoặc có lỗi nhỏ: {e} 💕")
