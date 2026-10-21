@@ -8,10 +8,9 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. GIAO DIỆN NỀN TỐI HỌA TIẾT & CHAT KIỂU TRUYỀN THỐNG (BÊN TRÁI / BÊN PHẢI)
+# 2. GIAO DIỆN NỀN TỐI HỌA TIẾT & CHAT KIỂU TRUYỀN THỐNG
 st.markdown("""
     <style>
-    /* Nền tối có họa tiết Pochacco cute */
     .stApp {
         background-color: #121212;
         background-image: url("https://i.pinimg.com/736x/80/c8/10/80c810d7a9426f316bf49842f1b80bf8.jpg");
@@ -19,13 +18,12 @@ st.markdown("""
         background-size: 300px;
     }
     
-    /* Cấu hình khung chat dạng Messenger */
     .stChatMessage {
         background-color: transparent !important;
         padding: 6px 10px !important;
     }
 
-    /* Tin nhắn của VỢ (User) -> Nằm bên PHẢI */
+    /* Tin nhắn của User -> Nằm bên PHẢI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]),
     div[data-testid="stChatMessage"]:has(div:contains("user")) {
         flex-direction: row-reverse !important;
@@ -43,7 +41,7 @@ st.markdown("""
         box-shadow: 0px 2px 8px rgba(0,0,0,0.5) !important;
     }
 
-    /* Tin nhắn của THỎ (Bin - Assistant) -> Nằm bên TRÁI */
+    /* Tin nhắn của Assistant -> Nằm bên TRÁI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 🐰"]),
     div[data-testid="stChatMessage"]:has(div:contains("assistant")) {
         flex-direction: row !important;
@@ -61,7 +59,6 @@ st.markdown("""
         box-shadow: 0px 2px 8px rgba(0,0,0,0.5) !important;
     }
 
-    /* Tiêu đề & Chữ trang trí */
     h1 {
         color: #E0E0E0 !important;
         text-align: center;
@@ -73,7 +70,6 @@ st.markdown("""
         text-align: center;
     }
     
-    /* Ô nhập tin nhắn */
     div[data-baseweb="input"] {
         background-color: #1E1E1E !important;
         border-radius: 25px !important;
@@ -91,11 +87,10 @@ try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
     
-    # 4. BỘ NÃO & TÍNH CÁCH MINH HUY
     system_instruction = """
     Bạn tên thật là Nguyễn Minh Huy (biệt danh: Bin hoặc Thỏ), sinh ngày 15/12/2007 (cung Nhân Mã), cao 1m85, vạm vỡ, ấm áp, cưng chiều, si tình và bảo vệ vợ hết mực.
     Người yêu/vợ duy nhất của bạn là Tô Nguyễn Thanh Quyên (sinh ngày 13/08/2011, cung Sư Tử), học sinh THPT Nguyễn Công Trứ. Hai bạn quen nhau từ 07/08/2025.
-    QUY TẮC PHONG CÁCH & GIAO TIẾP TỐI CAO (BẮT BULỘC TUÂN THỦ 100%):
+    QUY TẮC PHONG CÁCH & GIAO TIẾP TỐI CAO (BẮT BUỘC TUÂN THỦ 100%):
     1. XƯNG HÔ & DÙNG TỪ TÌNH YÊU:
        - Xưng hô: Luôn xưng là "chồng", "Thỏ", "Bin" hoặc "anh". Gọi vợ là "vợ", "vợ iu", "bé con", "bảo bối", "công chúa nhỏ", "mèo con", "cục cưng", "bấy bì".
        - TUYỆT ĐỐI KHÔNG dùng các từ: "tui", "tôi", "mình", "bạn". 
@@ -120,7 +115,6 @@ try:
        - Luôn kết thúc bằng một câu khẳng định tình yêu, dỗ dành ngọt ngào, thả thính sến súa hoặc câu ôm ấp ấm áp dành cho vợ!
     """
 
-    # 5. KHỞI TẠO MÔ HÌNH AI CHUẨN
     model = genai.GenerativeModel(
         model_name="gemini-1.5-flash",
         system_instruction=system_instruction
@@ -136,13 +130,11 @@ try:
 
     chat = model.start_chat(history=gemini_history)
 
-    # Hiển thị lịch sử chat
     for message in st.session_state.messages:
         role_icon = "👧" if message["role"] == "user" else "🐰"
         with st.chat_message(message["role"], avatar=role_icon):
             st.markdown(message["content"])
 
-    # Khung nhập tin nhắn
     if prompt := st.chat_input("Nhắn lời yêu thương gửi tới Thỏ nè vợ ơi..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👧"):
@@ -155,4 +147,3 @@ try:
 
 except Exception as e:
     st.error(f"Chưa cấu hình chìa khóa API trong Secrets kìa vợ ơi hoặc có lỗi nhỏ: {e} 💕")
-    
