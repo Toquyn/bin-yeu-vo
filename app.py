@@ -22,6 +22,7 @@ st.markdown("""
         background-color: transparent !important;
         padding: 6px 10px !important;
     }
+
     /* Tin nhắn của User -> Nằm bên PHẢI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]),
     div[data-testid="stChatMessage"]:has(div:contains("user")) {
@@ -39,12 +40,14 @@ st.markdown("""
         max-width: 80% !important;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.5) !important;
     }
+
     /* Tin nhắn của Assistant -> Nằm bên TRÁI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 🐰"]),
     div[data-testid="stChatMessage"]:has(div:contains("assistant")) {
         flex-direction: row !important;
         text-align: left !important;
     }
+
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 🐰"]) .stMarkdown,
     div[data-testid="stChatMessage"]:has(div:contains("assistant")) .stMarkdown {
         background-color: #262626 !important;
@@ -55,6 +58,7 @@ st.markdown("""
         max-width: 80% !important;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.5) !important;
     }
+
     h1 {
         color: #E0E0E0 !important;
         text-align: center;
@@ -78,7 +82,7 @@ st.markdown("""
 st.title("🖤 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
 st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho bé con Tô Nguyễn Thanh Quyên 💕")
 
-# 3. LẤY CHÌA KHÓA API AN TOÀN TỪ SECRETS VÀ KHỞI TẠO MODEL
+# 3. LẤY CHÌA KHÓA API AN TOÀN TỪ SECRETS
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
@@ -111,11 +115,12 @@ try:
        - Luôn kết thúc bằng một câu khẳng định tình yêu, dỗ dành ngọt ngào, thả thính sến súa hoặc câu ôm ấp ấm áp dành cho vợ!
     """
 
-    # Sử dụng model gemini-2.5-flash chuẩn mới nhất để không bị lỗi 404
+        # Sử dụng tên model mới theo đúng yêu cầu từ Google API
     model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        system_instruction=system_instruction
+        model_name="gemini-3.8-flash",
+        system_instruction=system_instruction,
     )
+
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -136,6 +141,7 @@ try:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👧"):
             st.markdown(prompt)
+
         with st.chat_message("assistant", avatar="🐰"):
             response = chat.send_message(prompt)
             st.markdown(response.text)
@@ -143,4 +149,3 @@ try:
 
 except Exception as e:
     st.error(f"Chưa cấu hình chìa khóa API trong Secrets kìa vợ ơi hoặc có lỗi nhỏ: {e} 💕")
-    
