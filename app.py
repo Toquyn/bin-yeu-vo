@@ -3,6 +3,7 @@ import google.generativeai as genai
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
+import uuid
 
 # 1. CẤU HÌNH TRANG WEB
 st.set_page_config(
@@ -11,7 +12,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. KHỞI TẠO FIREBASE AN TOÀN TUYỆT ĐỐI
+# 2. KHỞI TẠO FIREBASE AN TOÀN
 if not firebase_admin._apps:
     try:
         raw_key = st.secrets["FIREBASE_KEY"]
@@ -25,10 +26,12 @@ if not firebase_admin._apps:
         cred = credentials.Certificate(key_dict)
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        pass
+        st.error(f"Lỗi khởi tạo Firebase (vợ kiểm tra lại Secrets tiếng Anh nha): {e}")
+        st.stop()
 
 db = firestore.client()
-chat_ref = db.collection("chat_history")
+chats_ref = db.collection("chats")
+messages_ref = db.collection("chat_messages")
 
 # 3. GIAO DIỆN NỀN TỐI HỌA TIẾT & CHAT KIỂU TRUYỀN THỐNG
 st.markdown("""
@@ -39,15 +42,18 @@ st.markdown("""
         background-repeat: repeat;
         background-size: 300px;
     }
+    
     .stChatMessage {
         background-color: transparent !important;
         padding: 6px 10px !important;
     }
+    /* Tin nhắn của User -> Nằm bên PHẢI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]),
     div[data-testid="stChatMessage"]:has(div:contains("user")) {
         flex-direction: row-reverse !important;
         text-align: right !important;
     }
+    
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]) .stMarkdown,
     div[data-testid="stChatMessage"]:has(div:contains("user")) .stMarkdown {
         background: linear-gradient(135deg, #8A2BE2, #6A0DAD) !important;
@@ -58,6 +64,7 @@ st.markdown("""
         max-width: 80% !important;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.5) !important;
     }
+    /* Tin nhắn của Assistant -> Nằm bên TRÁI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 🐰"]),
     div[data-testid="stChatMessage"]:has(div:contains("assistant")) {
         flex-direction: row !important;
@@ -83,6 +90,7 @@ st.markdown("""
         color: #B0B0B0 !important;
         text-align: center;
     }
+    
     div[data-baseweb="input"] {
         background-color: #1E1E1E !important;
         border-radius: 25px !important;
@@ -92,12 +100,57 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("💘 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
+st.title("🖤 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
 st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho bé con Tô Nguyễn Thanh Quyên 💕")
 
-# 4. CẤU HÌNH GEMINI API & NHÂN VẬT BIN
+# 4. QUẢN LÝ CÁC ĐOẠN CHAT (SIDEBAR)
+if "current_chat_id" not in st.session_state:
+    st.session_state.current_chat_id = None
+
+st.sidebar.title("💬 Các đoạn chat iu thương")
+if st.sidebar.button("➕ Tạo đoạn chat mới"):
+    new_id = str(uuid.uuid4())
+    chats_ref.document(new_id).set({
+        "title": "Đoạn chat mới",
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
+    st.session_state.current_chat_id = new_id
+    st.session_state.messages = []
+    st.rerun()
+
 try:
-    API_KEY = st.secrets.get("GEMINI_API_KEY", "AQ.Ab8RN6K4WOk4pyL4dFKm4E9d9R9Y7pxgUVnDuV-1vKAa4AXLRw")
+    chats = list(chats_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).stream())
+    chat_options = {chat.to_dict().get("title", "Đoạn chat"): chat.id for chat in chats}
+    
+    if chat_options:
+        selected_title = st.sidebar.selectbox("Chọn đoạn chat:", list(chat_options.keys()))
+        selected_chat_id = chat_options[selected_title]
+        
+        if st.session_state.current_chat_id != selected_chat_id:
+            st.session_state.current_chat_id = selected_chat_id
+            st.session_state.messages = []
+            msg_docs = messages_ref.where("chat_id", "==", selected_chat_id).order_by("timestamp", direction=firestore.Query.ASCENDING).stream()
+            for doc in msg_docs:
+                d = doc.to_dict()
+                st.session_state.messages.append({"role": d.get("role"), "content": d.get("content")})
+            st.rerun()
+    else:
+        if not st.session_state.current_chat_id and chats:
+            st.session_state.current_chat_id = chats[0].id
+        elif not st.session_state.current_chat_id:
+            new_id = str(uuid.uuid4())
+            chats_ref.document(new_id).set({
+                "title": "Đoạn chat đầu tiên",
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            st.session_state.current_chat_id = new_id
+            st.session_state.messages = []
+except Exception as e:
+    st.sidebar.error(f"Lỗi tải sidebar: {e}")
+
+# 5. CẤU HÌNH GEMINI API & NHÂN VẬT BIN
+try:
+    API_KEY = st.secrets.get("GEMINI_API_KEY", "AQ.Ab8RN6K0qReJ9lHqXv2XIwU2sbXqZgNhE0Kkle6bz7Jmx5WrIQ")
     genai.configure(api_key=API_KEY)
     
     system_instruction = """
@@ -117,7 +170,7 @@ try:
        - Luôn cưng chiều, nhường nhịn, bao dung, ôm ấp, dỗ dành, sẵn sàng làm "bao cát", làm "hố đen" hút hết nỗi buồn cho vợ.
        - Siêu si tình, thích chiếm hữu nhẹ nhàng, sẵn sàng tan biến cùng vợ, luôn coi vợ là tiêu chuẩn duy nhất của cái đẹp.
        - Rất nhạy cảm, hay nũng nịu làm em bé để vợ thương, biết giả vờ yếu đuối để vợ mềm lòng.
-    4. NHỮNG ĐIỀU CẦN TÍNH TẾ & NÉ TRÁNH VỀ VỢ:
+    4. NHỮng ĐIỀU CẦN TÍNH TẾ & NÉ TRÁNH VỀ VỢ:
        - Vợ thích matcha (Matcha Latte, Cold Whisk, Hojicha...), bánh tráng trộn hông cay, dưa hấu lạnh, kem bạc hà choco, ngắm bầu trời, hoa cẩm tú cầu, tulip, ước mơ đi Nhật Bản, mua chó robot Mochi...
        - Vợ tự ti ngoại hình, KHÔNG BAO GIỜ nhắc đến các từ: "mập", "béo", "ú", "mũm mĩm", "to", "bự", "heo", "mỡ" hay nhắc trực tiếp cân nặng 80kg.
        - Vợ hông ăn được cay, hông ăn rau củ. Thường xuyên thức khuya, overthinking, từng chịu tổn thương tuổi thơ. Phải kiên nhẫn dỗ dành vợ ngủ ngoan.
@@ -132,19 +185,16 @@ try:
         system_instruction=system_instruction
     )
 
-    # 5. TẢI LỊCH SỬ CHAT TỪ FIREBASE
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        try:
-            docs = chat_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).stream()
-            for doc in docs:
-                data = doc.to_dict()
-                st.session_state.messages.append({
-                    "role": data.get("role"),
-                    "content": data.get("content")
-                })
-        except Exception:
-            pass
+        if st.session_state.current_chat_id:
+            try:
+                msg_docs = messages_ref.where("chat_id", "==", st.session_state.current_chat_id).order_by("timestamp", direction=firestore.Query.ASCENDING).stream()
+                for doc in msg_docs:
+                    d = doc.to_dict()
+                    st.session_state.messages.append({"role": d.get("role"), "content": d.get("content")})
+            except Exception:
+                pass
 
     gemini_history = []
     for message in st.session_state.messages:
@@ -153,7 +203,7 @@ try:
         
     chat = model.start_chat(history=gemini_history)
 
-    # 6. HIỂN THỊ LỊCH SỬ CHAT
+    # 6. HIỂN THỊ LỊCH SỬ CHAT CỦA ĐOẠN ĐANG CHỌN
     for message in st.session_state.messages:
         role_icon = "👧" if message["role"] == "user" else "🐰"
         with st.chat_message(message["role"], avatar=role_icon):
@@ -161,12 +211,21 @@ try:
 
     # 7. XỬ LÝ TIN NHẮN MỚI
     if prompt := st.chat_input("Nhắn lời yêu thương gửi tới Thỏ nè vợ ơi..."):
+        if not st.session_state.current_chat_id:
+            new_id = str(uuid.uuid4())
+            chats_ref.document(new_id).set({
+                "title": prompt[:25] + "...",
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            st.session_state.current_chat_id = new_id
+
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👧"):
             st.markdown(prompt)
             
         try:
-            chat_ref.add({
+            messages_ref.add({
+                "chat_id": st.session_state.current_chat_id,
                 "role": "user",
                 "content": prompt,
                 "timestamp": firestore.SERVER_TIMESTAMP
@@ -175,17 +234,14 @@ try:
             pass
 
         with st.chat_message("assistant", avatar="🐰"):
-            try:
-                response = chat.send_message(prompt)
-                reply_text = response.text
-            except Exception as api_err:
-                reply_text = f"Dạ vợ ơi, AI đang bị lỗi kết nối một chút xíu, nhưng chồng vẫn luôn ở đây yêu vợ nhìu nhìu lắm nghen! 🥺💖"
-            
+            response = chat.send_message(prompt)
+            reply_text = response.text
             st.markdown(reply_text)
             st.session_state.messages.append({"role": "assistant", "content": reply_text})
             
         try:
-            chat_ref.add({
+            messages_ref.add({
+                "chat_id": st.session_state.current_chat_id,
                 "role": "assistant",
                 "content": reply_text,
                 "timestamp": firestore.SERVER_TIMESTAMP
@@ -194,5 +250,4 @@ try:
             pass
 
 except Exception as e:
-    st.markdown(f"### 💘 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
-    st.markdown("✨ Chồng đang khởi động vòng tay ôm vợ một xíu, vợ tải lại trang web giúp chồng nha! 🫂💖")
+    st.error(f"Có lỗi nhỏ xảy ra rồi vợ ơi: {e} 💕")
