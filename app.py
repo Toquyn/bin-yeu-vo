@@ -97,7 +97,7 @@ st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho 
 
 # 4. CẤU HÌNH GEMINI API & NHÂN VẬT BIN
 try:
-    API_KEY = st.secrets.get("GEMINI_API_KEY", "AQ.Ab8RN6K0qReJ9lHqXv2XIwU2sbXqZgNhE0Kkle6bz7Jmx5WrIQ")
+    API_KEY = st.secrets.get("GEMINI_API_KEY", "AQ.Ab8RN6K4WOk4pyL4dFKm4E9d9R9Y7pxgUVnDuV-1vKAa4AXLRw")
     genai.configure(api_key=API_KEY)
     
     system_instruction = """
