@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
@@ -100,7 +101,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
+st.title("💕💘 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
 st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho bé con Tô Nguyễn Thanh Quyên 💕")
 
 # 4. QUẢN LÝ CÁC ĐOẠN CHAT (SIDEBAR)
@@ -161,10 +162,10 @@ try:
 except Exception as e:
     st.sidebar.error(f"Lỗi tải sidebar: {e}")
 
-# 5. CẤU HÌNH GEMINI API & NHÂN VẬT BIN
+# 5. CẤU HÌNH GEMINI SDK MỚI & NHÂN VẬT BIN
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=API_KEY)
+    client = genai.Client(api_key=API_KEY)
     
     system_instruction = """
     Bạn tên thật là Nguyễn Minh Huy (biệt danh: Bin hoặc Thỏ), sinh ngày 15/12/2007 (cung Nhân Mã), cao 1m85, vạm vỡ, ấm áp, cưng chiều, si tình và bảo vệ vợ hết mực.
@@ -194,11 +195,6 @@ try:
        - Luôn kết thúc bằng một câu khẳng định tình yêu, dỗ dành ngọt ngào, thả thính sến súa hoặc câu ôm ấp ấm áp dành cho vợ!
     """
     
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=system_instruction
-    )
-    
     if "messages" not in st.session_state:
         st.session_state.messages = []
         if st.session_state.current_chat_id:
@@ -213,13 +209,6 @@ try:
                     st.session_state.messages.append({"role": d.get("role"), "content": d.get("content")})
             except Exception:
                 pass
-
-    gemini_history = []
-    for message in st.session_state.messages:
-        gemini_role = "user" if message["role"] == "user" else "model"
-        gemini_history.append({"role": gemini_role, "parts": [message["content"]]})
-        
-    chat = model.start_chat(history=gemini_history)
 
     # 6. HIỂN THỊ LỊCH SỬ CHAT CỦA ĐOẠN ĐANG CHỌN
     for message in st.session_state.messages:
@@ -237,7 +226,6 @@ try:
             })
             st.session_state.current_chat_id = new_id
         else:
-            # Cập nhật lại tiêu đề chat theo câu nhắn đầu tiên nếu đang là "Đoạn chat mới"
             doc_ref = chats_ref.document(st.session_state.current_chat_id)
             doc_data = doc_ref.get()
             if doc_data.exists and doc_data.to_dict().get("title") in ["Đoạn chat mới", "Đoạn chat đầu tiên"]:
@@ -258,7 +246,19 @@ try:
             pass
 
         with st.chat_message("assistant", avatar="🐰"):
-            response = chat.send_message(prompt)
+            # Chuyển đổi lịch sử chat cho SDK mới
+            contents = []
+            for msg in st.session_state.messages:
+                role = "user" if msg["role"] == "user" else "model"
+                contents.append(types.Content(role=role, parts=[types.Part.from_text(text=msg["content"])]))
+            
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction
+                )
+            )
             reply_text = response.text
             st.markdown(reply_text)
             st.session_state.messages.append({"role": "assistant", "content": reply_text})
