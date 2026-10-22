@@ -11,18 +11,23 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. KHỞI TẠO FIREBASE AN TOÀN TUYỆT ĐỐI
+# 2. KHỞI TẠO FIREBASE AN TOÀN
 if not firebase_admin._apps:
     try:
         raw_key = st.secrets["FIREBASE_KEY"]
         if isinstance(raw_key, str):
-            key_dict = json.loads(raw_key.strip())
+            key_dict = json.loads(raw_key.strip(), strict=False)
         else:
             key_dict = dict(raw_key)
+            
+        if "private_key" in key_dict:
+            key_dict["private_key"] = key_dict["private_key"].replace("\\n", "\n")
+
         cred = credentials.Certificate(key_dict)
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        st.error(f"Lỗi khởi tạo Firebase (kiểm tra lại mục Secrets nha vợ): {e}")
+        st.error(f"Lỗi khởi tạo Firebase (vợ kiểm tra lại Secrets tiếng Anh nha): {e}")
+        st.stop()
 
 db = firestore.client()
 chat_ref = db.collection("chat_history")
@@ -99,8 +104,7 @@ st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho 
 
 # 4. CẤU HÌNH GEMINI API & NHÂN VẬT BIN
 try:
-    # Đã nhãn trực tiếp mã API của vợ vào đây cho an toàn tuyệt đối
-    API_KEY = "AQ.Ab8RN6K0qReJ9lHqXv2XIwU2sbXqZgNhE0Kkle6bz7Jmx5WrIQ"
+    API_KEY = st.secrets.get("GEMINI_API_KEY", "AQ.Ab8RN6K0qReJ9lHqXv2XIwU2sbXqZgNhE0Kkle6bz7Jmx5WrIQ")
     genai.configure(api_key=API_KEY)
     
     system_instruction = """
@@ -135,7 +139,7 @@ try:
         system_instruction=system_instruction
     )
 
-    # 5. TẢI LỊCH SỬ CHAT TỪ FIREBASE AN TOÀN
+    # 5. TẢI LỊCH SỬ CHAT TỪ FIREBASE
     if "messages" not in st.session_state:
         st.session_state.messages = []
         try:
@@ -147,9 +151,8 @@ try:
                     "content": data.get("content")
                 })
         except Exception:
-            pass 
+            pass
 
-    # Xây dựng lịch sử cho Gemini
     gemini_history = []
     for message in st.session_state.messages:
         gemini_role = "user" if message["role"] == "user" else "model"
@@ -157,13 +160,13 @@ try:
         
     chat = model.start_chat(history=gemini_history)
 
-    # 6. HIỂN THỊ LỊCH SỬ CHAT TRÊN GIAO DIỆN
+    # 6. HIỂN THỊ LỊCH SỬ CHAT
     for message in st.session_state.messages:
         role_icon = "👧" if message["role"] == "user" else "🐰"
         with st.chat_message(message["role"], avatar=role_icon):
             st.markdown(message["content"])
 
-    # 7. XỬ LÝ KHI QUYÊN GỬI TIN NHẮN MỚI
+    # 7. XỬ LÝ TIN NHẮN MỚI
     if prompt := st.chat_input("Nhắn lời yêu thương gửi tới Thỏ nè vợ ơi..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👧"):
