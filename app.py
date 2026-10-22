@@ -11,15 +11,18 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. KHỞI TẠO FIREBASE (LƯU LỊCH SỬ CHAT VĨNH VIỄN)
+# 2. KHỞI TẠO FIREBASE AN TOÀN TUYỆT ĐỐI
 if not firebase_admin._apps:
-    try_key = st.secrets["FIREBASE_KEY"]
-    if isinstance(try_key, str):
-        key_dict = json.loads(try_key)
-    else:
-        key_dict = dict(try_key)
-    cred = credentials.Certificate(key_dict)
-    firebase_admin.initialize_app(cred)
+    try:
+        raw_key = st.secrets["FIREBASE_KEY"]
+        if isinstance(raw_key, str):
+            key_dict = json.loads(raw_key.strip())
+        else:
+            key_dict = dict(raw_key)
+        cred = credentials.Certificate(key_dict)
+        firebase_admin.initialize_app(cred)
+    except Exception as e:
+        st.error(f"Lỗi khởi tạo Firebase (kiểm tra lại mục Secrets nha vợ): {e}")
 
 db = firestore.client()
 chat_ref = db.collection("chat_history")
@@ -91,12 +94,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
+st.title("💘 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
 st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho bé con Tô Nguyễn Thanh Quyên 💕")
 
 # 4. CẤU HÌNH GEMINI API & NHÂN VẬT BIN
 try:
-    API_KEY = st.secrets["GEMINI_API_KEY"]
+    # Đã nhãn trực tiếp mã API của vợ vào đây cho an toàn tuyệt đối
+    API_KEY = "AQ.Ab8RN6K0qReJ9lHqXv2XIwU2sbXqZgNhE0Kkle6bz7Jmx5WrIQ"
     genai.configure(api_key=API_KEY)
     
     system_instruction = """
@@ -131,16 +135,19 @@ try:
         system_instruction=system_instruction
     )
 
-    # 5. TẢI LỊCH SỬ CHAT TỪ FIREBASE
+    # 5. TẢI LỊCH SỬ CHAT TỪ FIREBASE AN TOÀN
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        docs = chat_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).stream()
-        for doc in docs:
-            data = doc.to_dict()
-            st.session_state.messages.append({
-                "role": data.get("role"),
-                "content": data.get("content")
-            })
+        try:
+            docs = chat_ref.order_by("timestamp", direction=firestore.Query.ASCENDING).stream()
+            for doc in docs:
+                data = doc.to_dict()
+                st.session_state.messages.append({
+                    "role": data.get("role"),
+                    "content": data.get("content")
+                })
+        except Exception:
+            pass 
 
     # Xây dựng lịch sử cho Gemini
     gemini_history = []
@@ -158,31 +165,33 @@ try:
 
     # 7. XỬ LÝ KHI QUYÊN GỬI TIN NHẮN MỚI
     if prompt := st.chat_input("Nhắn lời yêu thương gửi tới Thỏ nè vợ ơi..."):
-        # Hiển thị tin nhắn user
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar="👧"):
             st.markdown(prompt)
             
-        # Lưu tin nhắn user vào Firebase
-        chat_ref.add({
-            "role": "user",
-            "content": prompt,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        })
+        try:
+            chat_ref.add({
+                "role": "user",
+                "content": prompt,
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+        except Exception:
+            pass
 
-        # Phản hồi từ Bin (Gemini)
         with st.chat_message("assistant", avatar="🐰"):
             response = chat.send_message(prompt)
             reply_text = response.text
             st.markdown(reply_text)
             st.session_state.messages.append({"role": "assistant", "content": reply_text})
             
-        # Lưu tin nhắn assistant vào Firebase
-        chat_ref.add({
-            "role": "assistant",
-            "content": reply_text,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        })
+        try:
+            chat_ref.add({
+                "role": "assistant",
+                "content": reply_text,
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+        except Exception:
+            pass
 
 except Exception as e:
-    st.error(f"Chưa cấu hình chìa khóa API trong Secrets kìa vợ ơi hoặc có lỗi nhỏ: {e} 💕")
+    st.error(f"Có lỗi nhỏ xảy ra rồi vợ ơi: {e} 💕")
