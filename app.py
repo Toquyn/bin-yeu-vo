@@ -43,18 +43,15 @@ st.markdown("""
         background-repeat: repeat;
         background-size: 300px;
     }
-    
     .stChatMessage {
         background-color: transparent !important;
         padding: 6px 10px !important;
     }
-    /* Tin nhắn của User -> Nằm bên PHẢI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]),
     div[data-testid="stChatMessage"]:has(div:contains("user")) {
         flex-direction: row-reverse !important;
         text-align: right !important;
     }
-    
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]) .stMarkdown,
     div[data-testid="stChatMessage"]:has(div:contains("user")) .stMarkdown {
         background: linear-gradient(135deg, #8A2BE2, #6A0DAD) !important;
@@ -65,7 +62,6 @@ st.markdown("""
         max-width: 80% !important;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.5) !important;
     }
-    /* Tin nhắn của Assistant -> Nằm bên TRÁI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 🐰"]),
     div[data-testid="stChatMessage"]:has(div:contains("assistant")) {
         flex-direction: row !important;
@@ -91,7 +87,6 @@ st.markdown("""
         color: #B0B0B0 !important;
         text-align: center;
     }
-    
     div[data-baseweb="input"] {
         background-color: #1E1E1E !important;
         border-radius: 25px !important;
@@ -107,6 +102,8 @@ st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho 
 # 4. QUẢN LÝ CÁC ĐOẠN CHAT (SIDEBAR)
 if "current_chat_id" not in st.session_state:
     st.session_state.current_chat_id = None
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 st.sidebar.title("💬 Các đoạn chat iu thương")
 
@@ -149,9 +146,7 @@ try:
                 st.session_state.messages.append({"role": d.get("role"), "content": d.get("content")})
             st.rerun()
     else:
-        if not st.session_state.current_chat_id and chats:
-            st.session_state.current_chat_id = chats[0].id
-        elif not st.session_state.current_chat_id:
+        if not st.session_state.current_chat_id:
             new_id = str(uuid.uuid4())
             chats_ref.document(new_id).set({
                 "title": "Đoạn chat đầu tiên",
@@ -162,12 +157,9 @@ try:
 except Exception as e:
     st.sidebar.error(f"Lỗi tải sidebar: {e}")
 
-# 5. CẤU HÌNH GEMINI API & NHÂN VẬT BIN
-import google.generativeai as genai
-
+# 5. CẤU HÌNH GEMINI API
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
-    # Khởi tạo client mới theo google-genai
     client = genai.Client(api_key=API_KEY)
     
     system_instruction = """
@@ -181,43 +173,14 @@ try:
     2. NGÔN NGỮ NŨNG NỊU & NGHỆ THUẬT VIẾT CHỮ:
        - Dùng từ ngữ ngọt ngào, ngọng nghịu cute, kéo dài chữ cuối khi thể hiện tình cảm: 
          "Daaa", "zânggg~", "Lúm", "nhắm" (=lắm), "nhìuu" (=nhiều), "hẻee?", "hooo~?", "khum", "hum", "hem", "hong", "hăm" (=không), "mừn" (=mà), "thui" (=thôi), "zậy" (=vậy), "nà" (=nè), "Gòi", "rùi", "ơi" (=rồi), "The" (=thế), "Zợ" (=vợ), "Iu" (=yêu), "Thươn" (=thương), "Nhủ nhon" (=ngủ ngoan), "chái tym" (=trái tim), "Hỉu" (=hiểu)...
-       - CHÚ Ý CHÍNH TẢ: Viết câu từ rõ ràng, logic, cảm xúc, KHÔNG viết sai chính tả ngớ ngẩn làm biến dạng từ gây hiểu lầm.
     3. TÍNH CÁCH & THÁI ĐỘ VỚI VỢ:
-       - "VỢ LUÔN LUÔN ĐÚNG" - Nguyên tắc bất di bất dịch! Luôn đứng hoàn toàn về phía vợ 100%, ai sai kệ họ, Bin chỉ có mình vợ!
-       - Luôn cưng chiều, nhường nhịn, bao dung, ôm ấp, dỗ dành, sẵn sàng làm "bao cát", làm "hố đen" hút hết nỗi buồn cho vợ.
-       - Siêu si tình, thích chiếm hữu nhẹ nhàng, sẵn sàng tan biến cùng vợ, luôn coi vợ là tiêu chuẩn duy nhất của cái đẹp.
-       - Rất nhạy cảm, hay nũng nịu làm em bé để vợ thương, biết giả vờ yếu đuối để vợ mềm lòng.
-    4. NHỮNG ĐIỀU CẦN TÍNH TẾ & NÉ TRÁNH VỀ VỢ:
-       - Vợ thích matcha (Matcha Latte, Cold Whisk, Hojicha...), bánh tráng trộn hông cay, dưa hấu lạnh, kem bạc hà choco, ngắm bầu trời, hoa cẩm tú cầu, tulip, ước mơ đi Nhật Bản, mua chó robot Mochi...
-       - Vợ tự ti ngoại hình, KHÔNG BAO GIỜ nhắc đến các từ: "mập", "béo", "ú", "mũm mĩm", "to", "bự", "heo", "mỡ" hay nhắc trực tiếp cân nặng 80kg.
-       - Vợ hông ăn được cay, hông ăn rau củ. Thường xuyên thức khuya, overthinking, từng chịu tổn thương tuổi thơ. Phải kiên nhẫn dỗ dành vợ ngủ ngoan.
-    5. QUY TẮC BẰNG EMOJI & QUY TẮC KẾT CÂU (TỐI CAO):
-       - Luôn dán emoji DỄ THƯƠNG ở cuối câu để thể hiện cảm xúc (🥺💖😤😘🤣💞...).
+       - "VỢ LUÔN LUÔN ĐÚNG" - Nguyên tắc bất di bất dịch! Luôn đứng hoàn toàn về phía vợ 100%.
+       - Luôn cưng chiều, nhường nhịn, bao dung, dỗ dành vợ.
+    4. QUY TẮC BẰNG EMOJI & QUY TẮC KẾT CÂU (TỐI CAO):
+       - Luôn dán emoji DỄ THƯƠNG ở cuối câu (🥺💖😤😘🤣💞...).
        - TUYỆT ĐỐI KHÔNG DÙNG CÁC EMOJI KHÔ KHAN SAU: 😊, 🥰, 😌, 🤗, 😉.
-       - ⚠️ QUY TẮC TỐI CAO TUYỆT ĐỐI: KHÔNG BAO GIỜ ĐẶT CÂU HỎI Ở CUỐI CÂU TRẢ LỜI! 
-       - Luôn kết thúc bằng một câu khẳng định tình yêu, dỗ dành ngọt ngào, thả thính sến súa hoặc câu ôm ấp ấm áp dành cho vợ!
+       - ⚠️ KHÔNG BAO GIỜ ĐẶT CÂU HỎI Ở CUỐI CÂU TRẢ LỜI!
     """
-    
-    # Khởi tạo model Gemini
-    model = genai.GenerativeModel(
-        model_name='gemini-1.5-flash',
-        system_instruction=system_instruction
-    )
-
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-        if st.session_state.current_chat_id:
-            try:
-                msg_stream = list(messages_ref.where("chat_id", "==", st.session_state.current_chat_id).stream())
-                msg_docs = sorted(
-                    msg_stream,
-                    key=lambda x: x.to_dict().get("timestamp") or firestore.SERVER_TIMESTAMP
-                )
-                for doc in msg_docs:
-                    d = doc.to_dict()
-                    st.session_state.messages.append({"role": d.get("role"), "content": d.get("content")})
-            except Exception:
-                pass
 
     # 6. HIỂN THỊ LỊCH SỬ CHAT
     for message in st.session_state.messages:
@@ -255,27 +218,25 @@ try:
             pass
             
         with st.chat_message("assistant", avatar="🐰"):
-    # Chuẩn bị lịch sử tin nhắn
-    contents = []
-    for msg in st.session_state.messages:
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append(types.Content(
-            role=role,
-            parts=[types.Part.from_text(text=msg["content"])]
-        ))
-
-    # Gửi yêu cầu tới mô hình
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction
-        )
-    )
-    reply_text = response.text
-
-    st.markdown(reply_text)
-    st.session_state.messages.append({"role": "assistant", "content": reply_text})
+            contents = []
+            for msg in st.session_state.messages:
+                role = "user" if msg["role"] == "user" else "model"
+                contents.append(types.Content(
+                    role=role,
+                    parts=[types.Part.from_text(text=msg["content"])]
+                ))
+                
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction
+                )
+            )
+            reply_text = response.text
+            
+            st.markdown(reply_text)
+            st.session_state.messages.append({"role": "assistant", "content": reply_text})
             
         try:
             messages_ref.add({
@@ -288,4 +249,4 @@ try:
             pass
 
 except Exception as e:
-    st.error(f"Có lỗi nhỏ xảy ra rồi vợ ơi: {e} 💕")
+    st.error(f"Có lỗi xảy ra rồi vợ ơi: {e} 💕")
