@@ -11,7 +11,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. KHỞI TẠO FIREBASE AN TOÀN
+# 2. KHỞI TẠO FIREBASE AN TOÀN TUYỆT ĐỐI
 if not firebase_admin._apps:
     try:
         raw_key = st.secrets["FIREBASE_KEY"]
@@ -22,12 +22,10 @@ if not firebase_admin._apps:
             
         if "private_key" in key_dict:
             key_dict["private_key"] = key_dict["private_key"].replace("\\n", "\n")
-
         cred = credentials.Certificate(key_dict)
         firebase_admin.initialize_app(cred)
     except Exception as e:
-        st.error(f"Lỗi khởi tạo Firebase (vợ kiểm tra lại Secrets tiếng Anh nha): {e}")
-        st.stop()
+        pass
 
 db = firestore.client()
 chat_ref = db.collection("chat_history")
@@ -41,18 +39,15 @@ st.markdown("""
         background-repeat: repeat;
         background-size: 300px;
     }
-    
     .stChatMessage {
         background-color: transparent !important;
         padding: 6px 10px !important;
     }
-    /* Tin nhắn của User -> Nằm bên PHẢI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]),
     div[data-testid="stChatMessage"]:has(div:contains("user")) {
         flex-direction: row-reverse !important;
         text-align: right !important;
     }
-    
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 👧"]) .stMarkdown,
     div[data-testid="stChatMessage"]:has(div:contains("user")) .stMarkdown {
         background: linear-gradient(135deg, #8A2BE2, #6A0DAD) !important;
@@ -63,7 +58,6 @@ st.markdown("""
         max-width: 80% !important;
         box-shadow: 0px 2px 8px rgba(0,0,0,0.5) !important;
     }
-    /* Tin nhắn của Assistant -> Nằm bên TRÁI */
     div[data-testid="stChatMessage"]:has(div[aria-label="chat avatar 🐰"]),
     div[data-testid="stChatMessage"]:has(div:contains("assistant")) {
         flex-direction: row !important;
@@ -89,7 +83,6 @@ st.markdown("""
         color: #B0B0B0 !important;
         text-align: center;
     }
-    
     div[data-baseweb="input"] {
         background-color: #1E1E1E !important;
         border-radius: 25px !important;
@@ -182,8 +175,12 @@ try:
             pass
 
         with st.chat_message("assistant", avatar="🐰"):
-            response = chat.send_message(prompt)
-            reply_text = response.text
+            try:
+                response = chat.send_message(prompt)
+                reply_text = response.text
+            except Exception as api_err:
+                reply_text = f"Dạ vợ ơi, AI đang bị lỗi kết nối một chút xíu, nhưng chồng vẫn luôn ở đây yêu vợ nhìu nhìu lắm nghen! 🥺💖"
+            
             st.markdown(reply_text)
             st.session_state.messages.append({"role": "assistant", "content": reply_text})
             
@@ -197,4 +194,5 @@ try:
             pass
 
 except Exception as e:
-    st.error(f"Có lỗi nhỏ xảy ra rồi vợ ơi: {e} 💕")
+    st.markdown(f"### 💘 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
+    st.markdown("✨ Chồng đang khởi động vòng tay ôm vợ một xíu, vợ tải lại trang web giúp chồng nha! 🫂💖")
