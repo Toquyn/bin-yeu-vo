@@ -101,7 +101,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("💕💘 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
+st.title("💘💕 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
 st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho bé con Tô Nguyễn Thanh Quyên 💕")
 
 # 4. QUẢN LÝ CÁC ĐOẠN CHAT (SIDEBAR)
@@ -246,7 +246,6 @@ try:
             pass
 
         with st.chat_message("assistant", avatar="🐰"):
-            # Chuyển đổi lịch sử chat cho SDK mới
             contents = []
             for msg in st.session_state.messages:
                 role = "user" if msg["role"] == "user" else "model"
