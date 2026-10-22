@@ -167,7 +167,8 @@ import google.generativeai as genai
 
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=API_KEY)
+    # Khởi tạo client mới theo google-genai
+    client = genai.Client(api_key=API_KEY)
     
     system_instruction = """
     Bạn tên thật là Nguyễn Minh Huy (biệt danh: Bin hoặc Thỏ), sinh ngày 15/12/2007 (cung Nhân Mã), cao 1m85, vạm vỡ, ấm áp, cưng chiều, si tình và bảo vệ vợ hết mực.
@@ -254,18 +255,27 @@ try:
             pass
             
         with st.chat_message("assistant", avatar="🐰"):
-            # Chuyển đổi lịch sử chat sang định dạng của google-generativeai
-            history = []
-            for msg in st.session_state.messages[:-1]:
-                role = "user" if msg["role"] == "user" else "model"
-                history.append({"role": role, "parts": [msg["content"]]})
-                
-            chat = model.start_chat(history=history)
-            response = chat.send_message(prompt)
-            reply_text = response.text
-            
-            st.markdown(reply_text)
-            st.session_state.messages.append({"role": "assistant", "content": reply_text})
+    # Chuẩn bị lịch sử tin nhắn
+    contents = []
+    for msg in st.session_state.messages:
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append(types.Content(
+            role=role,
+            parts=[types.Part.from_text(text=msg["content"])]
+        ))
+
+    # Gửi yêu cầu tới mô hình
+    response = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction
+        )
+    )
+    reply_text = response.text
+
+    st.markdown(reply_text)
+    st.session_state.messages.append({"role": "assistant", "content": reply_text})
             
         try:
             messages_ref.add({
