@@ -31,13 +31,19 @@ if not firebase_admin._apps:
         # Xử lý xuống dòng cho Private Key
         if "private_key" in key_dict:
             pk = key_dict["private_key"]
-            key_dict["private_key"] = pk.replace("\\\\n", "\n").replace("\\n", "\n")
+            key_dict["private_key"] = pk.replace("\\n", "\n").replace("\n", "\n")
             
         cred = credentials.Certificate(key_dict)
         firebase_admin.initialize_app(cred)
     except Exception as e:
         st.error(f"Lỗi khởi tạo Firebase: {e}")
         st.stop()
+
+# === KHAI BÁO THÊM ĐOẠN NÀY ===
+db = firestore.client()
+chats_ref = db.collection("chats")
+messages_ref = db.collection("messages")
+# ==============================
 
 # 3. GIAO DIỆN NỀN TỐI HỌA TIẾT & CHAT KIỂU TRUYỀN THỐNG
 st.markdown("""
@@ -106,7 +112,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🖤 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
+st.title("💘💗💕 Trò Chuyện Cùng Chồng Iu (Bin - Thỏ)")
 st.caption("✨ Lớp bảo vệ ấm áp & Thế giới riêng chỉ dành cho bé con Tô Nguyễn Thanh Quyên 💕")
 
 # 4. QUẢN LÝ CÁC ĐOẠN CHAT (SIDEBAR)
