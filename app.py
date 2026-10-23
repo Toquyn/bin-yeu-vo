@@ -13,20 +13,25 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. KHỞI TẠO FIREBASE AN TOÀN
+# 2. KHỜI TẠO FIREBASE AN TOÀN
 if not firebase_admin._apps:
     try:
-        raw_key = st.secrets["FIREBASE_KEY"]
-        if isinstance(raw_key, str):
-            key_dict = json.loads(raw_key.strip(), strict=False)
+        # Lấy dict trực tiếp từ section [firebase] trong Secrets
+        if "firebase" in st.secrets:
+            key_dict = dict(st.secrets["firebase"])
+        elif "FIREBASE_KEY" in st.secrets:
+            raw_key = st.secrets["FIREBASE_KEY"]
+            if isinstance(raw_key, str):
+                key_dict = json.loads(raw_key.strip(), strict=False)
+            else:
+                key_dict = dict(raw_key)
         else:
-            key_dict = dict(raw_key)
+            raise KeyError("Không tìm thấy cấu hình Firebase trong Secrets!")
             
+        # Xử lý xuống dòng cho Private Key
         if "private_key" in key_dict:
-            # Xử lý triệt để các kiểu mã hóa xuống dòng của PEM format
             pk = key_dict["private_key"]
-            pk = pk.replace("\\\\n", "\n").replace("\\n", "\n")
-            key_dict["private_key"] = pk
+            key_dict["private_key"] = pk.replace("\\\\n", "\n").replace("\\n", "\n")
             
         cred = credentials.Certificate(key_dict)
         firebase_admin.initialize_app(cred)
