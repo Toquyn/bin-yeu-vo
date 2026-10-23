@@ -13,6 +13,10 @@ st.set_page_config(
     layout="centered"
 )
 
+# Chặn trình duyệt tự động dịch làm hỏng giao diện Streamlit
+st.markdown('<html lang="vi" class="notranslate" translate="no">', unsafe_allow_html=True)
+st.markdown('<meta name="google" content="notranslate" />', unsafe_allow_html=True)
+
 # 2. KHỜI TẠO FIREBASE AN TOÀN
 if not firebase_admin._apps:
     try:
